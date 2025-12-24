@@ -1,0 +1,8 @@
+{
+  "name": "Exam Prep Gen",
+  "description": "An advanced AI-powered educational tool that transforms lecture notes, PDFs, images, and videos into structured practice quizzes aligned with GCE Ordinary and Advanced Level standards.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
