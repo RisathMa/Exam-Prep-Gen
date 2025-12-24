@@ -1,16 +1,16 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Upload, 
-  FileText, 
-  Video, 
-  Image as ImageIcon, 
-  CheckCircle, 
-  AlertCircle, 
-  RefreshCw, 
-  BookOpen, 
-  GraduationCap, 
-  Globe, 
+import {
+  Upload,
+  FileText,
+  Video,
+  Image as ImageIcon,
+  CheckCircle,
+  AlertCircle,
+  RefreshCw,
+  BookOpen,
+  GraduationCap,
+  Globe,
   Download,
   ChevronDown,
   Printer,
@@ -30,19 +30,27 @@ import { generateQuiz, generateQuestionImage } from './services/geminiService';
 const SmartText: React.FC<{ text: string; className?: string }> = ({ text, className }) => {
   const renderContent = () => {
     if (!text) return null;
-    
+
     // Split by $ delimiters
     const parts = text.split(/(\$.*?\$)/g);
-    
+
     return parts.map((part, index) => {
       if (part.startsWith('$') && part.endsWith('$')) {
         const formula = part.slice(1, -1);
         try {
-          const html = katex.renderToString(formula, {
+          // Check for common hallucinations and fix them if possible
+          let cleanedFormula = formula
+            .replace(/^rac/, '\\frac') // Fix missing backslash for frac
+            .replace(/^ext/, '\\text') // Fix missing backslash for text
+            .replace(/ext\{√\}/g, '\\sqrt') // Fix weird square root hallucinations
+            .replace(/√/g, '\\sqrt');     // Ensure literal square root symbols are handled
+
+          const html = katex.renderToString(cleanedFormula, {
             throwOnError: false,
-            displayMode: false
+            displayMode: false,
+            strict: false
           });
-          return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
+          return <span key={index} className="mx-0.5 inline-block align-middle scale-110" dangerouslySetInnerHTML={{ __html: html }} />;
         } catch (e) {
           return <span key={index}>{part}</span>;
         }
@@ -78,9 +86,9 @@ const App: React.FC = () => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
-      const type = selectedFile.type.startsWith('image') ? 'image' : 
-                   selectedFile.type.startsWith('video') ? 'video' : 'pdf';
-      
+      const type = selectedFile.type.startsWith('image') ? 'image' :
+        selectedFile.type.startsWith('video') ? 'video' : 'pdf';
+
       setFile({
         file: selectedFile,
         preview: URL.createObjectURL(selectedFile),
@@ -130,7 +138,7 @@ const App: React.FC = () => {
         { level, language, topics }
       );
       setQuiz(generatedQuiz);
-      
+
       // Secondary Phase: Generate AI Visuals
       generatedQuiz.questions.forEach(async (q) => {
         if (q.image_description) {
@@ -139,10 +147,10 @@ const App: React.FC = () => {
           if (imageUrl) {
             setQuiz(prev => {
               if (!prev) return prev;
-              const updatedQuestions = prev.questions.map(question => 
-                question.question_id === q.question_id 
-                ? { ...question, image_url: imageUrl } 
-                : question
+              const updatedQuestions = prev.questions.map(question =>
+                question.question_id === q.question_id
+                  ? { ...question, image_url: imageUrl }
+                  : question
               );
               return { ...prev, questions: updatedQuestions };
             });
@@ -165,17 +173,21 @@ const App: React.FC = () => {
 
     const container = document.createElement('div');
     container.className = 'pdf-container';
-    
+
     const content = document.createElement('div');
     content.className = `pdf-content ${language === Language.SINHALA ? 'sinhala' : ''}`;
-    
-    // Use the same math rendering logic for the PDF
+
     const renderPdfText = (text: string) => {
       if (!text) return '';
       return text.split(/(\$.*?\$)/g).map(part => {
         if (part.startsWith('$') && part.endsWith('$')) {
+          let formula = part.slice(1, -1)
+            .replace(/^rac/, '\\frac')
+            .replace(/^ext/, '\\text')
+            .replace(/ext\{√\}/g, '\\sqrt')
+            .replace(/√/g, '\\sqrt');
           try {
-            return katex.renderToString(part.slice(1, -1), { throwOnError: false });
+            return katex.renderToString(formula, { throwOnError: false });
           } catch (e) { return part; }
         }
         return part;
@@ -228,16 +240,26 @@ const App: React.FC = () => {
       margin: [10, 10, 10, 10],
       filename: `${quiz.quiz_metadata.title.replace(/\s+/g, '_')}_${includeAnswers ? 'Answers' : 'Paper'}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: true,
+        width: 800,
+        windowWidth: 800,
+        backgroundColor: '#ffffff'
+      },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Increase wait time for Sinhala fonts and KaTeX
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
       // @ts-ignore
       await html2pdf().set(opt).from(container).save();
     } catch (err) {
       console.error("PDF Generation error:", err);
+      alert("Error generating PDF. Please try again.");
     } finally {
       if (document.body.contains(container)) document.body.removeChild(container);
       setIsDownloading(false);
@@ -249,13 +271,13 @@ const App: React.FC = () => {
     setUserAnswers(prev => ({ ...prev, [questionId]: optionIndex }));
   };
 
-  const score = quiz ? quiz.questions.reduce((acc, q) => 
+  const score = quiz ? quiz.questions.reduce((acc, q) =>
     userAnswers[q.question_id] === q.correct_answer_index ? acc + 1 : acc, 0
   ) : 0;
 
   return (
     <div className="min-h-screen pb-12 bg-slate-50">
-      <header className="bg-indigo-600 text-white py-6 md:py-8 px-4 shadow-lg sticky top-0 z-30 md:static">
+      <header className="bg-indigo-600 text-white py-4 md:py-8 px-4 shadow-lg sticky top-0 z-40">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-2 md:gap-4">
           <div className="text-center md:text-left">
             <button onClick={resetAll} className="text-xl md:text-3xl font-bold flex items-center justify-center md:justify-start gap-2 md:gap-3">
@@ -359,7 +381,7 @@ const App: React.FC = () => {
 
         {quiz && (
           <div className="space-y-6 md:space-y-8">
-            <div className="bg-white p-4 md:p-6 rounded-2xl shadow-lg border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 sticky top-4 z-20">
+            <div className="bg-white p-4 md:p-6 rounded-2xl shadow-lg border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 sticky top-[72px] md:top-4 z-30 transition-all">
               <div className="text-center md:text-left w-full md:w-auto">
                 <h2 className="text-lg md:text-2xl font-black text-slate-800">{quiz.quiz_metadata.title}</h2>
                 <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">{quiz.quiz_metadata.subject}</p>
@@ -370,7 +392,7 @@ const App: React.FC = () => {
                     <Download className="w-4 h-4" /> <span>PDF</span> <ChevronDown className="w-3 h-3" />
                   </button>
                   {showDownloadMenu && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-slate-100 z-50 py-2">
+                    <div className="absolute left-0 md:right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-slate-100 z-50 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
                       <button onClick={() => downloadPdf(false)} className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-indigo-50 flex items-center gap-3 font-bold">Question Paper</button>
                       <button onClick={() => downloadPdf(true)} className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-indigo-50 flex items-center gap-3 font-bold">Paper + Answers</button>
                     </div>
@@ -382,11 +404,21 @@ const App: React.FC = () => {
 
             {showResults && (
               <div className="bg-indigo-600 text-white p-6 md:p-10 rounded-3xl shadow-2xl flex flex-col md:flex-row items-center gap-6 justify-between animate-in zoom-in-95 duration-300">
-                <div className="flex items-center gap-8">
-                  <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center border-4 border-white/30"><span className="text-3xl font-black">{Math.round((score / quiz.questions.length) * 100)}%</span></div>
-                  <div><h3 className="text-2xl font-black">Grade Released</h3><p className="text-indigo-100 font-bold">Score: {score} / {quiz.questions.length} correct</p></div>
+                <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 text-center md:text-left">
+                  <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center border-4 border-white/30 shrink-0">
+                    <span className="text-3xl font-black">{Math.round((score / quiz.questions.length) * 100)}%</span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl md:text-2xl font-black">Grade Released</h3>
+                    <p className="text-indigo-100 font-bold">Score: {score} / {quiz.questions.length} correct</p>
+                  </div>
                 </div>
-                <button onClick={() => { setShowResults(false); setUserAnswers({}); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="px-8 py-4 bg-white text-indigo-600 rounded-2xl font-black">Retry Paper</button>
+                <button
+                  onClick={() => { setShowResults(false); setUserAnswers({}); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  className="w-full md:w-auto px-8 py-4 bg-white text-indigo-600 rounded-2xl font-black hover:bg-slate-50 transition-colors shadow-lg active:scale-95"
+                >
+                  Retry Paper
+                </button>
               </div>
             )}
 
@@ -399,7 +431,7 @@ const App: React.FC = () => {
                       <div className="flex justify-between items-start gap-4">
                         <div className="space-y-1">
                           <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded-full">Question {idx + 1}</span>
-                          <SmartText text={q.stem} className={`text-lg md:text-xl font-bold text-slate-800 ${language === Language.SINHALA ? 'sinhala' : ''}`} />
+                          <SmartText text={q.stem} className={`text-lg md:text-xl font-bold text-slate-900 ${language === Language.SINHALA ? 'sinhala' : ''}`} />
                         </div>
                       </div>
 
@@ -411,18 +443,18 @@ const App: React.FC = () => {
 
                       <div className="flex flex-col gap-2.5">
                         {q.options.map((opt, optIdx) => {
-                          let btnStyle = "border-slate-100 bg-slate-50/50";
+                          let btnStyle = "border-slate-200 bg-slate-50/50 text-slate-900";
                           if (showResults) {
                             if (optIdx === q.correct_answer_index) btnStyle = "bg-green-50 border-green-500 text-green-700 font-bold";
                             else if (userAnswers[q.question_id] === optIdx) btnStyle = "bg-red-50 border-red-500 text-red-700";
-                            else btnStyle = "opacity-40 grayscale";
+                            else btnStyle = "opacity-40 grayscale text-slate-900";
                           } else if (userAnswers[q.question_id] === optIdx) {
                             btnStyle = "bg-indigo-600 border-indigo-600 text-white shadow-lg";
                           }
 
                           return (
                             <button key={optIdx} disabled={showResults} onClick={() => handleAnswerSelect(q.question_id, optIdx)} className={`p-4 rounded-xl text-left border-2 flex items-start gap-3 transition-all ${btnStyle}`}>
-                              <span className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-black border bg-white text-slate-400">{String.fromCharCode(65 + optIdx)}</span>
+                              <span className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-black border ${userAnswers[q.question_id] === optIdx && !showResults ? 'bg-white text-indigo-600' : 'bg-white text-slate-700'}`}>{String.fromCharCode(65 + optIdx)}</span>
                               <SmartText text={opt} className={`text-base md:text-lg self-center ${language === Language.SINHALA ? 'sinhala' : ''}`} />
                             </button>
                           );

@@ -1,6 +1,6 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
@@ -8,61 +8,80 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Sinhala:wght@400;700;800&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+Sinhala:wght@400;700;800&display=swap"
+        rel="stylesheet">
+
     <!-- KaTeX for Math Rendering -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f8fafc;
             -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            scroll-behavior: smooth;
         }
+
         .sinhala {
             font-family: 'Noto Sans Sinhala', sans-serif;
+            line-height: 1.6;
         }
+
         .scrollbar-hide::-webkit-scrollbar {
             display: none;
         }
+
         .scrollbar-hide {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+
         /* Custom print styling for the generated PDF */
         .pdf-container {
             background: white;
             color: black;
-            width: 210mm;
-            padding: 20mm;
+            width: 800px;
+            padding: 40px;
             box-sizing: border-box;
             position: absolute;
             left: -9999px;
             top: 0;
+            z-index: -1;
+            opacity: 1;
+            pointer-events: none;
         }
+
         .pdf-content {
             font-family: 'Inter', sans-serif;
             line-height: 1.5;
         }
+
         .pdf-content.sinhala {
             font-family: 'Noto Sans Sinhala', sans-serif;
         }
+
         .pdf-header {
             text-align: center;
             border-bottom: 2px solid #000;
             margin-bottom: 30px;
             padding-bottom: 20px;
         }
+
         .pdf-question {
             margin-bottom: 30px;
             page-break-inside: avoid;
             font-size: 12pt;
         }
+
         .pdf-option {
             margin-left: 10px;
             margin-bottom: 8px;
         }
+
         .pdf-image {
             display: block;
             margin: 15px auto;
@@ -70,6 +89,7 @@
             height: auto;
             border-radius: 8px;
         }
+
         .pdf-feedback {
             margin-top: 15px;
             padding: 15px;
@@ -77,10 +97,13 @@
             border-left: 5px solid #16a34a;
             font-size: 11pt;
         }
+
         /* KaTeX adjustments for PDF */
-        .katex { font-size: 1.1em !important; }
+        .katex {
+            font-size: 1.1em !important;
+        }
     </style>
-<script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "react/": "https://esm.sh/react@^19.2.3/",
@@ -93,8 +116,10 @@
 }
 </script>
 </head>
+
 <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>
