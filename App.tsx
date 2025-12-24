@@ -38,11 +38,19 @@ const SmartText: React.FC<{ text: string; className?: string }> = ({ text, class
       if (part.startsWith('$') && part.endsWith('$')) {
         const formula = part.slice(1, -1);
         try {
-          const html = katex.renderToString(formula, {
+          // Check for common hallucinations and fix them if possible
+          let cleanedFormula = formula
+            .replace(/^rac/, '\\frac') // Fix missing backslash for frac
+            .replace(/^ext/, '\\text') // Fix missing backslash for text
+            .replace(/ext\{√\}/g, '\\sqrt') // Fix weird square root hallucinations
+            .replace(/√/g, '\\sqrt');     // Ensure literal square root symbols are handled
+
+          const html = katex.renderToString(cleanedFormula, {
             throwOnError: false,
-            displayMode: false
+            displayMode: false,
+            strict: false
           });
-          return <span key={index} dangerouslySetInnerHTML={{ __html: html }} />;
+          return <span key={index} className="mx-0.5 inline-block align-middle scale-110" dangerouslySetInnerHTML={{ __html: html }} />;
         } catch (e) {
           return <span key={index}>{part}</span>;
         }
@@ -169,13 +177,17 @@ const App: React.FC = () => {
     const content = document.createElement('div');
     content.className = `pdf-content ${language === Language.SINHALA ? 'sinhala' : ''}`;
     
-    // Use the same math rendering logic for the PDF
     const renderPdfText = (text: string) => {
       if (!text) return '';
       return text.split(/(\$.*?\$)/g).map(part => {
         if (part.startsWith('$') && part.endsWith('$')) {
+          let formula = part.slice(1, -1)
+            .replace(/^rac/, '\\frac')
+            .replace(/^ext/, '\\text')
+            .replace(/ext\{√\}/g, '\\sqrt')
+            .replace(/√/g, '\\sqrt');
           try {
-            return katex.renderToString(part.slice(1, -1), { throwOnError: false });
+            return katex.renderToString(formula, { throwOnError: false });
           } catch (e) { return part; }
         }
         return part;
@@ -399,7 +411,7 @@ const App: React.FC = () => {
                       <div className="flex justify-between items-start gap-4">
                         <div className="space-y-1">
                           <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded-full">Question {idx + 1}</span>
-                          <SmartText text={q.stem} className={`text-lg md:text-xl font-bold text-slate-800 ${language === Language.SINHALA ? 'sinhala' : ''}`} />
+                          <SmartText text={q.stem} className={`text-lg md:text-xl font-bold text-slate-900 ${language === Language.SINHALA ? 'sinhala' : ''}`} />
                         </div>
                       </div>
 
@@ -411,18 +423,18 @@ const App: React.FC = () => {
 
                       <div className="flex flex-col gap-2.5">
                         {q.options.map((opt, optIdx) => {
-                          let btnStyle = "border-slate-100 bg-slate-50/50";
+                          let btnStyle = "border-slate-200 bg-slate-50/50 text-slate-900";
                           if (showResults) {
                             if (optIdx === q.correct_answer_index) btnStyle = "bg-green-50 border-green-500 text-green-700 font-bold";
                             else if (userAnswers[q.question_id] === optIdx) btnStyle = "bg-red-50 border-red-500 text-red-700";
-                            else btnStyle = "opacity-40 grayscale";
+                            else btnStyle = "opacity-40 grayscale text-slate-900";
                           } else if (userAnswers[q.question_id] === optIdx) {
                             btnStyle = "bg-indigo-600 border-indigo-600 text-white shadow-lg";
                           }
 
                           return (
                             <button key={optIdx} disabled={showResults} onClick={() => handleAnswerSelect(q.question_id, optIdx)} className={`p-4 rounded-xl text-left border-2 flex items-start gap-3 transition-all ${btnStyle}`}>
-                              <span className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-black border bg-white text-slate-400">{String.fromCharCode(65 + optIdx)}</span>
+                              <span className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-xs font-black border ${userAnswers[q.question_id] === optIdx && !showResults ? 'bg-white text-indigo-600' : 'bg-white text-slate-700'}`}>{String.fromCharCode(65 + optIdx)}</span>
                               <SmartText text={opt} className={`text-base md:text-lg self-center ${language === Language.SINHALA ? 'sinhala' : ''}`} />
                             </button>
                           );

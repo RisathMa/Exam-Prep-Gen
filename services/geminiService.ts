@@ -21,14 +21,18 @@ export const generateQuiz = async (
   
   const modelName = 'gemini-3-flash-preview';
   
-  const prompt = `Analyze the attached ${input.type} and generate a practice examination for ${config.level} in ${config.language}.
-${config.topics ? `Focus specifically on: ${config.topics}` : ''}
+  const prompt = `Analyze the attached ${input.type} and generate a practice examination for ${config.level} strictly in ${config.language}.
 
-Rules for images:
-- Only provide an 'image_description' if the question setup requires a diagram (like a blank geometry shape or an unlabeled map).
-- DO NOT provide an image if the question is purely text-based.
-- THE IMAGE DESCRIPTION MUST NOT CONTAIN ANY HINTS, ANSWERS, OR EXPLANATIONS. 
-- It should only describe the physical setup of the problem.`;
+STRICT LANGUAGE RULE: 
+- Use ONLY ${config.language}. No English mixed in if Sinhala is selected.
+
+STRICT MATH RULE:
+- You MUST use standard LaTeX.
+- Ensure all backslashes are escaped properly in the JSON response (e.g., "\\\\frac" or "\\\\sqrt").
+- Never use "rac" or "ext". Use "\\\\frac" and "\\\\sqrt".
+- Mathematical symbols MUST be inside $...$ delimiters.
+
+${config.topics ? `Focus specifically on these topics: ${config.topics}` : ''}`;
 
   try {
     const response = await ai.models.generateContent({
@@ -50,7 +54,7 @@ Rules for images:
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         responseSchema: QUIZ_RESPONSE_SCHEMA,
-        temperature: 0.5,
+        temperature: 0.1, // Lower temperature for more consistent formatting
       },
     });
 
@@ -72,12 +76,7 @@ export const generateQuestionImage = async (prompt: string): Promise<string | nu
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
-        parts: [{ text: `A clean, professional educational diagram or illustration for a school test paper: ${prompt}. 
-        IMPORTANT: 
-        1. DO NOT include any answers or solutions in the image.
-        2. DO NOT include labels that explain the concept.
-        3. Only show the problem setup.
-        4. Style: Simple black and white line art or clear professional diagram on a white background. No text unless it is a coordinate label like 'A', 'B', 'x', 'y'.` }]
+        parts: [{ text: `A clean, professional educational diagram or illustration for a school test paper: ${prompt}. Style: Simple black and white line art or clear professional diagram on a white background. No text unless it is a coordinate label like 'A', 'B', 'x', 'y'.` }]
       },
       config: {
         imageConfig: {
