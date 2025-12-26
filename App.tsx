@@ -246,7 +246,11 @@ const App: React.FC = () => {
         logging: true,
         width: 800,
         windowWidth: 800,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        scrollX: 0,
+        scrollY: 0,
+        x: 0,
+        y: 0
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
