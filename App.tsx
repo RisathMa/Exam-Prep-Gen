@@ -176,11 +176,7 @@ const App: React.FC = () => {
 
     const content = document.createElement('div');
     content.className = `pdf-content ${language === Language.SINHALA ? 'sinhala' : ''}`;
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> e050c5857293480fcf965b3262913a610727e32f
     const renderPdfText = (text: string) => {
       if (!text) return '';
       return text.split(/(\$.*?\$)/g).map(part => {
@@ -249,12 +245,7 @@ const App: React.FC = () => {
         useCORS: true,
         logging: true,
         width: 800,
-        windowWidth: 800,
-        backgroundColor: '#ffffff',
-        scrollX: 0,
-        scrollY: 0,
-        x: 0,
-        y: 0
+        backgroundColor: '#ffffff'
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
